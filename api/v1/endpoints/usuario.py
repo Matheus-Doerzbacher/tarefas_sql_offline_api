@@ -7,12 +7,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.auth import autenticar, criar_token_acesso
 from core.security import gerar_hash_senha
 
-router = APIRouter(prefix="/usuarios", tags=["usuarios"])
-
 from core.deps import get_current_user, get_session
 
 from models.usuario_model import UsuarioModel
-from schemas.usuario_schema import Usuario, UsuarioCreate, UsuarioUpdate
+from schemas.usuario_schema import Usuario, UsuarioCreate
+from datetime import datetime
+
+router = APIRouter(prefix="/usuarios", tags=["usuarios"])
 
 
 # GET Usuario Logado
@@ -51,18 +52,18 @@ async def post_usuario(
 ):
     try:
         async with db as session:
-            novo_usuario: UsuarioModel = UsuarioModel(
+            usuario = UsuarioModel(
                 nome=usuario.nome,
                 email=usuario.email,
                 senha=gerar_hash_senha(usuario.senha),
-                api_status=usuario.api_status,
-                data_criacao=usuario.data_criacao,
-                data_alteracao=usuario.data_alteracao,
+                api_status="pendente",
+                data_criacao=datetime.now().isoformat(),
+                data_alteracao=datetime.now().isoformat(),
             )
 
-            session.add(novo_usuario)
+            session.add(usuario)
             await session.commit()
-            return novo_usuario
+            return usuario
 
     except IntegrityError:
         raise HTTPException(
@@ -75,11 +76,11 @@ async def post_usuario(
 @router.put("/{usuario_id}", response_model=Usuario)
 async def put_usuario(
     usuario_id: int,
-    usuario: UsuarioUpdate,
+    usuario: Usuario,
     db: AsyncSession = Depends(get_session),
     usuario_logado: UsuarioModel = Depends(get_current_user),
 ):
-    if usuario_logado.id != usuario_id:
+    if usuario_logado.id_usuario != usuario_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Não é possível atualizar o usuário logado",
@@ -94,18 +95,18 @@ async def put_usuario(
                 detail="Usuário não encontrado",
             )
 
-        if usuario.nome:
-            usuario_bd.nome = usuario.nome
-        if usuario.email:
-            usuario_bd.email = usuario.email
+        # Atualiza apenas os campos permitidos
+        for key, value in usuario.model_dump(exclude_unset=True).items():
+            if key != "senha" and key != "data_alteracao":
+                setattr(usuario_bd, key, value)
+
         if usuario.senha:
             usuario_bd.senha = gerar_hash_senha(usuario.senha)
-        if usuario.status:
-            usuario_bd.status = usuario.status
-        if usuario.data_alteracao:
-            usuario_bd.data_alteracao = usuario.data_alteracao
+
+        usuario_bd.data_alteracao = datetime.now().isoformat()
 
         await session.commit()
+        await session.refresh(usuario_bd)
         return usuario_bd
 
 
@@ -116,7 +117,7 @@ async def delete_usuario(
     db: AsyncSession = Depends(get_session),
     usuario_logado: UsuarioModel = Depends(get_current_user),
 ):
-    if usuario_logado.id != usuario_id:
+    if usuario_logado.id_usuario != usuario_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Não é possível deletar o usuário logado",
@@ -131,3 +132,4 @@ async def delete_usuario(
             )
 
         await session.delete(usuario_bd)
+        await session.commit()
