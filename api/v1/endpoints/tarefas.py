@@ -52,7 +52,7 @@ async def get_tarefa_by_id(
         raise HTTPException(status_code=404, detail="Tarefa não encontrada")
 
 
-@router.post("/", response_model=Tarefa)
+@router.post("/", response_model=Tarefa, status_code=status.HTTP_201_CREATED)
 async def post_tarefa(
     tarefa: TarefaCreate,
     db: AsyncSession = Depends(get_session),
@@ -83,7 +83,7 @@ async def put_tarefa(
     db: AsyncSession = Depends(get_session),
     usuario_logado: UsuarioModel = Depends(get_current_user),
 ):
-    if usuario_logado.id != tarefa.id_usuario:
+    if usuario_logado.id_usuario != tarefa.id_usuario:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Você só pode atualizar suas próprias tarefas",
@@ -110,17 +110,17 @@ async def delete_tarefa(
     db: AsyncSession = Depends(get_session),
     usuario_logado: UsuarioModel = Depends(get_current_user),
 ):
-    if usuario_logado.id_usuario != tarefa_bd.id_usuario:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Você só pode deletar suas próprias tarefas",
-        )
-
     async with db as session:
         tarefa_bd = await session.get(TarefaModel, tarefa_id)
 
         if not tarefa_bd:
             raise HTTPException(status_code=404, detail="Tarefa não encontrada")
+
+        if usuario_logado.id_usuario != tarefa_bd.id_usuario:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Você só pode deletar suas próprias tarefas",
+            )
 
         await session.delete(tarefa_bd)
         await session.commit()
