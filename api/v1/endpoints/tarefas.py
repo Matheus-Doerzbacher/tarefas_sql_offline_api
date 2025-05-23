@@ -17,9 +17,12 @@ router = APIRouter(prefix="/tarefas", tags=["tarefas"])
 @router.get("/", response_model=List[Tarefa])
 async def get_tarefas(
     db: AsyncSession = Depends(get_session),
+    usuario_logado: UsuarioModel = Depends(get_current_user),
 ):
     async with db as session:
-        query = select(TarefaModel)
+        query = select(TarefaModel).where(
+            TarefaModel.id_usuario == usuario_logado.id_usuario
+        )
         result = await session.execute(query)
         tarefas: List[TarefaModel] = result.scalars().all()
         return tarefas
@@ -29,9 +32,19 @@ async def get_tarefas(
 async def get_tarefa_by_id(
     tarefa_id: int,
     db: AsyncSession = Depends(get_session),
+    usuario_logado: UsuarioModel = Depends(get_current_user),
 ):
+    if usuario_logado.id_usuario != tarefa_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Você só pode acessar suas próprias tarefas",
+        )
+
     async with db as session:
-        query = select(TarefaModel).where(TarefaModel.id_tarefa == tarefa_id)
+        query = select(TarefaModel).where(
+            TarefaModel.id_tarefa == tarefa_id,
+            TarefaModel.id_usuario == usuario_logado.id_usuario,
+        )
         result = await session.execute(query)
         tarefa: TarefaModel = result.scalar_one_or_none()
         if tarefa:
@@ -45,6 +58,7 @@ async def post_tarefa(
     db: AsyncSession = Depends(get_session),
     usuario_logado: UsuarioModel = Depends(get_current_user),
 ):
+
     async with db as session:
         tarefa = TarefaModel(
             titulo=tarefa.titulo,
