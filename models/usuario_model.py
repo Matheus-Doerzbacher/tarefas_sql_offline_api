@@ -1,5 +1,5 @@
 from core.configs import settings
-from sqlalchemy import Column, Integer, String, Index
+from sqlalchemy import Column, Integer, String, Index, Boolean
 
 
 class UsuarioModel(settings.DBBaseModel):
@@ -10,6 +10,6 @@ class UsuarioModel(settings.DBBaseModel):
     nome: str = Column(String(256), nullable=False, index=True)
     email: str = Column(String(256), nullable=False, unique=True, index=True)
     senha: str = Column(String(256), nullable=False)
-    api_status = Column(String(256), nullable=False)
+    sincronizado = Column(Boolean, nullable=False)
     data_criacao = Column(String(256), nullable=False)
     data_alteracao = Column(String(256), nullable=False)

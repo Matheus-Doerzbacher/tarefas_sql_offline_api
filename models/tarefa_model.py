@@ -15,6 +15,6 @@ class TarefaModel(settings.DBBaseModel):
     titulo: str = Column(String(256), nullable=False)
     descricao: str = Column(String(256), nullable=False)
     is_concluida: bool = Column(Boolean, nullable=False)
-    api_status = Column(String(256), nullable=False)
+    sincronizado = Column(Boolean, nullable=False)
     data_criacao = Column(String(256), nullable=False)
     data_alteracao = Column(String(256), nullable=False)

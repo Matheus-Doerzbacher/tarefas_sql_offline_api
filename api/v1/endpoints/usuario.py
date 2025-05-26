@@ -27,7 +27,6 @@ async def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: AsyncSession = Depends(get_session),
 ):
-    print(form_data.username, form_data.password)
     usuario = await autenticar(form_data.username, form_data.password, db)
 
     if not usuario:
@@ -56,7 +55,7 @@ async def post_usuario(
                 nome=usuario.nome,
                 email=usuario.email,
                 senha=gerar_hash_senha(usuario.senha),
-                api_status="pendente",
+                sincronizado=True,
                 data_criacao=datetime.now().isoformat(),
                 data_alteracao=datetime.now().isoformat(),
             )

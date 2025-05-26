@@ -58,21 +58,27 @@ async def post_tarefa(
     db: AsyncSession = Depends(get_session),
     usuario_logado: UsuarioModel = Depends(get_current_user),
 ):
+    try:
+        async with db as session:
+            tarefa_model = TarefaModel(
+                titulo=tarefa.titulo,
+                descricao=tarefa.descricao,
+                id_usuario=usuario_logado.id_usuario,
+                sincronizado=True,
+                is_concluida=False,
+                data_criacao=datetime.now().isoformat(),
+                data_alteracao=datetime.now().isoformat(),
+            )
+            session.add(tarefa_model)
+            await session.commit()
+            await session.refresh(tarefa_model)
+            return tarefa_model
 
-    async with db as session:
-        tarefa = TarefaModel(
-            titulo=tarefa.titulo,
-            descricao=tarefa.descricao,
-            id_usuario=usuario_logado.id_usuario,
-            api_status="pendente",
-            is_concluida=False,
-            data_criacao=datetime.now().isoformat(),
-            data_alteracao=datetime.now().isoformat(),
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao criar tarefa: {str(e)}",
         )
-        session.add(tarefa)
-        await session.commit()
-        await session.refresh(tarefa)
-        return tarefa
 
 
 # PUT Tarefa

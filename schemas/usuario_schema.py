@@ -13,7 +13,7 @@ class UsuarioCreate(UsuarioBase):
 
 class Usuario(UsuarioBase):
     id_usuario: int
-    api_status: str
+    sincronizado: bool
     data_criacao: str
     data_alteracao: str
 
